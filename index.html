@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,7 +7,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%235aa9e6'/%3E%3C/svg%3E"
     />
-    <title>Prosedürel Gezegen — Rayleigh + Mie · 8×4'e karşı 32×16</title>
+    <title>Procedural Planet — Rayleigh + Mie · 8×4 vs 32×16</title>
     <style>
       :root {
         color-scheme: dark;
@@ -178,11 +178,11 @@
   </head>
   <body>
     <main>
-      <h1>İçine uçabileceğiniz bir gezegen — tek geçişte Rayleigh ve Mie</h1>
+      <h1>A planet you can fly into — Rayleigh and Mie in a single pass</h1>
       <p class="lede">
-        Gökyüzü dokusu yok. Mavi de, gün batımının kızıllığı da, uzaktan görünen
-        ince mavi kenar da tek bir fragment shader'ının içindeki saçılım
-        integralinden çıkıyor.
+        No sky texture. The blue, the red of the sunset and the thin blue rim
+        seen from far away all come out of the scattering integral inside a
+        single fragment shader.
       </p>
 
       <p id="banner" hidden></p>
@@ -194,7 +194,7 @@
 
       <div class="controls">
         <label class="field">
-          <span>Görüş örneği N</span>
+          <span>View samples N</span>
           <select id="view">
             <option value="8">8</option>
             <option value="16" selected>16</option>
@@ -203,7 +203,7 @@
           </select>
         </label>
         <label class="field">
-          <span>Işık örneği M</span>
+          <span>Light samples M</span>
           <select id="light">
             <option value="2">2</option>
             <option value="4">4</option>
@@ -213,11 +213,11 @@
           </select>
         </label>
         <label class="field">
-          <span>İrtifa <b id="altitude-out">400 km</b></span>
+          <span>Altitude <b id="altitude-out">400 km</b></span>
           <input id="altitude" type="range" min="0" max="1000" step="1" />
         </label>
         <label class="field">
-          <span>Güneş yüksekliği <b id="sun-out">12°</b></span>
+          <span>Sun elevation <b id="sun-out">12°</b></span>
           <input id="sun" type="range" min="-10" max="60" step="0.5" />
         </label>
         <label class="field">
@@ -225,11 +225,11 @@
           <input id="mieg" type="range" min="0" max="0.95" step="0.01" />
         </label>
         <label class="field">
-          <span>Pozlama <b id="exposure-out">2.0</b></span>
+          <span>Exposure <b id="exposure-out">2.0</b></span>
           <input id="exposure" type="range" min="0.5" max="6" step="0.1" />
         </label>
         <label class="field">
-          <span>Çözünürlük ölçeği</span>
+          <span>Resolution scale</span>
           <select id="scale">
             <option value="0.35">0.35×</option>
             <option value="0.5" selected>0.5×</option>
@@ -238,22 +238,22 @@
           </select>
         </label>
         <label class="field">
-          <span>Mod</span>
+          <span>Mode</span>
           <select id="mode">
-            <option value="0" selected>Gölgeli</option>
-            <option value="1">Örnek sayısı</option>
+            <option value="0" selected>Shaded</option>
+            <option value="1">Sample count</option>
           </select>
         </label>
         <div class="field">
-          <span>Döngü</span>
-          <button id="toggle" type="button">Dur</button>
+          <span>Loop</span>
+          <button id="toggle" type="button">Pause</button>
         </div>
       </div>
 
       <footer>
-        Deterministik ölçüm için adrese <code>?measure=1</code> ekleyin; koşu
-        bitince konsola tek satır <code>MEASURE {…}</code> düşer. Koşu sırasında
-        sekmeyi ön planda tutun.
+        For a deterministic measurement add <code>?measure=1</code> to the
+        address; when the run ends a single <code>MEASURE {…}</code> line lands
+        in the console. Keep the tab in the foreground during the run.
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>

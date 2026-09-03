@@ -4,15 +4,15 @@ import { cross, normalize } from "./geometry";
 export type Vec3 = readonly [number, number, number];
 
 export interface CameraPose {
-  readonly position: Vec3; // gezegen merkezine göre, km
-  readonly altitude: number; // km — konumdan GERİ HESAPLANMAZ, taşınır
+  readonly position: Vec3; // relative to the planet center, km
+  readonly altitude: number; // km — NOT RECOMPUTED from position, it is carried
   readonly right: Vec3;
   readonly up: Vec3;
   readonly forward: Vec3;
 }
 
-// latitude/longitude bir yüzey noktası verir; irtifa o noktanın üstüne çıkar.
-// pitch = 0 ufka bakar, pozitif değer burnu yukarı kaldırır.
+// latitude/longitude give a surface point; the altitude climbs above it.
+// pitch = 0 looks at the horizon, a positive value lifts the nose up.
 export function poseAtAltitude(
   altitudeKm: number,
   latRad: number,
@@ -28,10 +28,10 @@ export function poseAtAltitude(
   const r = R_GROUND + altitudeKm;
   const position: Vec3 = [up[0] * r, up[1] * r, up[2] * r];
 
-  // Kuzeyi referans alıp yüzeye teğet bir doğu vektörü kur.
+  // Take north as the reference and build an east vector tangent to the surface.
   const north: Vec3 = [0, 1, 0];
   const east = normalize(cross(north, up));
-  const tangent = cross(up, east); // ufka bakan yön
+  const tangent = cross(up, east); // the direction facing the horizon
 
   const cp = Math.cos(pitchRad);
   const sp = Math.sin(pitchRad);
@@ -47,8 +47,8 @@ export function poseAtAltitude(
 }
 
 /**
- * GLSL `mat3` sütun-öncelikli: ilk üç eleman `right`, sonraki üç `up`,
- * son üç `forward`. `uniformMatrix3fv(loc, false, ...)` ile gönderilir.
+ * GLSL `mat3` is column-major: the first three elements are `right`, the next
+ * three `up`, the last three `forward`. Sent via `uniformMatrix3fv(loc, false, ...)`.
  */
 export function basisMatrix(pose: CameraPose): Float32Array {
   return new Float32Array([
@@ -64,12 +64,12 @@ export function basisMatrix(pose: CameraPose): Float32Array {
   ]);
 }
 
-/** Ufkun yerel yataydan ne kadar aşağıda kaldığı: acos(R / (R + h)). */
+/** How far the horizon drops below the local horizontal: acos(R / (R + h)). */
 export function horizonDipRad(altitudeKm: number): number {
   return Math.acos(R_GROUND / (R_GROUND + altitudeKm));
 }
 
-/** Yerel çerçeve: yukarı (yüzey normali), doğu, kuzeye teğet yön. */
+/** Local frame: up (surface normal), east, the tangent direction to north. */
 export interface LocalFrame {
   readonly up: Vec3;
   readonly east: Vec3;
@@ -84,9 +84,9 @@ export function localFrame(position: Vec3): LocalFrame {
 }
 
 /**
- * Güneş azimutu kameranın baktığı yönden (yerel teğet) doğuya doğru sapma.
- * 0 seçilirse güneş tam kadraj ortasına, dolayısıyla gökyüzü ölçüm bloğunun
- * içine düşerdi; 18° hem diski kadrajda tutuyor hem bloğun dışında bırakıyor.
+ * The sun azimuth is the eastward deviation from the direction the camera looks
+ * at (the local tangent). Picking 0 would drop the sun dead center in the frame,
+ * hence inside the sky measurement block; 18° keeps the disk in frame yet out of it.
  */
 export const SUN_AZIMUTH_DEG = 18;
 
@@ -120,11 +120,11 @@ export const SKY_PROBE_WIDTH = 64;
 export const SKY_PROBE_HEIGHT = 16;
 
 /**
- * Ufkun `aboveHorizonDeg` kadar üstündeki gökyüzü şeridine denk gelen piksel
- * dikdörtgeni. Koordinatlar GL düzeninde (sol-alt orijin).
+ * The pixel rectangle matching the strip of sky `aboveHorizonDeg` above the
+ * horizon. Coordinates are in GL layout (bottom-left origin).
  *
- * Işın kurulumu shader'daki ile aynı: uv = (frag - 0.5*res) / res.y,
- * dolayısıyla dikey açı `atan(uv.y / focal)` kadar ileri yönün üstünde.
+ * The ray setup is the same as in the shader: uv = (frag - 0.5*res) / res.y,
+ * so the vertical angle sits `atan(uv.y / focal)` above the forward direction.
  */
 export function skyProbeRect(
   pose: CameraPose,

@@ -1,5 +1,5 @@
-/** Gölgeli çıktı: tonemap + gama uygulanmış renk. */
+/** Shaded output: tonemapped + gamma-corrected color. */
 export const MODE_SHADED = 0;
 
-/** Ham örnek sayacı: iki bayta kodlanmış gSamples, tonemap YOK. */
+/** Raw sample counter: gSamples encoded into two bytes, NO tonemap. */
 export const MODE_SAMPLE_COUNT = 1;

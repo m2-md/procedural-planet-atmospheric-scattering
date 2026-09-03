@@ -29,7 +29,7 @@ export const DEFAULT_ALTITUDE_KM = 400;
 export const DEFAULT_SUN_ELEV_DEG = 12;
 export const CAM_LAT_DEG = 18;
 export const CAM_LON_DEG = 40;
-/** İrtifa ne olursa olsun ufuk kadrajda kalsın diye eklenen pay. */
+/** Margin added so the horizon stays in frame whatever the altitude is. */
 export const PITCH_ABOVE_HORIZON_DEG = 2;
 
 export interface RendererStats {
@@ -72,7 +72,7 @@ export interface Renderer {
   dispose(): void;
 }
 
-/** İrtifadan standart poz: ufuk her irtifada kadrajın biraz altında kalır. */
+/** Standard pose from an altitude: the horizon stays a bit below frame center. */
 export function poseForAltitude(altitudeKm: number): CameraPose {
   const pitch =
     -horizonDipRad(altitudeKm) + (PITCH_ABOVE_HORIZON_DEG * Math.PI) / 180;
@@ -119,7 +119,7 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
     powerPreference: "high-performance",
     preserveDrawingBuffer: false,
   });
-  if (!context) throw new Error("WebGL2 yok");
+  if (!context) throw new Error("no WebGL2");
   const gl: WebGL2RenderingContext = context;
 
   const bundles = new Map<string, ProgramBundle>();
@@ -130,8 +130,8 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       lightSamples: light,
       terrainOctaves: TERRAIN_OCTAVES,
     });
-    // compileMs: derleme + link + LINK_STATUS sorgusu. Sürücü işi erteleyebilir,
-    // o yüzden ilk kare ayrı ölçülüyor.
+    // compileMs: compile + link + the LINK_STATUS query. The driver may defer
+    // the work, which is why the first frame is measured separately.
     const t0 = performance.now();
     const program = linkProgram(gl, vertexSource, frag);
     const compileMs = performance.now() - t0;
@@ -166,18 +166,18 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   }
 
   const vao = gl.createVertexArray();
-  gl.bindVertexArray(vao); // attribute yok, sadece "bir VAO bağlı olsun" diye
+  gl.bindVertexArray(vao); // no attributes, just so "some VAO is bound"
 
   gl.disable(gl.DEPTH_TEST);
   gl.disable(gl.CULL_FACE);
   gl.disable(gl.BLEND);
-  // 16 bitlik sayaç kodlaması dithering açıkken bozulur: sürücü baytı bir tık
-  // oynatma hakkını saklı tutuyor ve bu 256'lık hatalara dönüşüyor.
+  // The 16-bit counter encoding breaks with dithering on: the driver reserves
+  // the right to nudge a byte, and that turns into errors of 256.
   gl.disable(gl.DITHER);
 
   const timer = new GpuTimer(gl);
   const probe: Probe = createProbe(gl, PROBE_WIDTH, PROBE_HEIGHT);
-  /** İlk kare ölçümünde senkronizasyon için kullanılan tek piksellik tampon. */
+  /** One-pixel buffer used to synchronize the first-frame measurement. */
   const syncPixel = new Uint8Array(4);
 
   let viewSamples = DEFAULT_VIEW_SAMPLES;
@@ -203,7 +203,7 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   let lastFrameStamp = 0;
   let lastProbeStamp = 0;
 
-  // İlk bundle'ı hemen kur ki WebGL2 varsa shader hatası açılışta patlasın.
+  // Build the first bundle right away so a shader error blows up at startup.
   bundleFor(viewSamples, lightSamples);
 
   function applyUniforms(
@@ -220,7 +220,7 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       pose.position[1],
       pose.position[2],
     );
-    // İrtifa POZDAN gelir; length(position) - R_GROUND ile yeniden hesaplanmaz.
+    // The altitude comes from the POSE; it is not recomputed as length(position) - R_GROUND.
     gl.uniform1f(bundle.uCamAltitude, pose.altitude);
     gl.uniformMatrix3fv(bundle.uCamBasis, false, basisMatrix(pose));
     gl.uniform1f(
@@ -241,9 +241,9 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
     applyUniforms(bundle, canvas.width, canvas.height, mode);
     gl.bindVertexArray(vao);
     if (bundle.firstDrawMs === null) {
-      // Soğuk derleme sayfa başına tek gözlem: bu programla çizilen ilk kare.
-      // Senkronizasyon için gl.finish() yetmiyor (sürücü işi kuyrukta bırakıp
-      // dönebiliyor); tek piksellik readPixels zorunlu bir bekleme noktası.
+      // Cold compile is a single observation per page: the first frame drawn
+      // with this program. gl.finish() is not enough to synchronize (the driver
+      // can return with work still queued); a one-pixel readPixels forces a wait.
       const t0 = performance.now();
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, syncPixel);
@@ -285,7 +285,7 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   }
 
   function readFrame(): Uint8Array {
-    // preserveDrawingBuffer kapalı: çizim ile okuma AYNI görevde olmak zorunda.
+    // preserveDrawingBuffer is off: draw and read have to be in the SAME task.
     resize();
     drawMain();
     const pixels = new Uint8Array(canvas.width * canvas.height * 4);

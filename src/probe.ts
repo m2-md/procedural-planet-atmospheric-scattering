@@ -10,9 +10,9 @@ export const PROBE_WIDTH = 240;
 export const PROBE_HEIGHT = 135;
 
 /**
- * Örnek sayacını geri okumak için küçük bir RGBA8 hedefi. Ana arka tampon
- * yerine buraya çiziyoruz: 240×135 piksel okumak 960×540 okumaktan ~16 kat
- * ucuz ve sayaç zaten piksel başına aynı değeri veriyor.
+ * A small RGBA8 target for reading the sample counter back. We draw here
+ * instead of into the main backbuffer: reading 240×135 pixels is ~16 times
+ * cheaper than reading 960×540, and the counter gives the same value per pixel.
  */
 export function createProbe(
   gl: WebGL2RenderingContext,

@@ -2,7 +2,7 @@
   "name": "procedural-planet-atmospheric-scattering",
   "private": true,
   "version": "1.0.0",
-  "description": "Tek geçişte Rayleigh + Mie atmosferik saçılım: ham WebGL2 fragment shader'ında prosedürel gezegen, analitik ışın-küre kesişimi ve 8x4'e karşı 32x16 örnekleme bütçesinin GPU saatiyle ölçümü",
+  "description": "Single-pass atmospheric scattering shader for planetary rendering: analytic optical depth integration, Rayleigh blue sky diffusion, Mie forward haze, and aerial perspective.",
   "type": "module",
   "license": "MIT",
   "scripts": {

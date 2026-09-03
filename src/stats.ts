@@ -12,9 +12,9 @@ export function percentile(values: readonly number[], p: number): number {
   return sorted[low] + (sorted[high] - sorted[low]) * (rank - low);
 }
 
-// İki RGBA8 tamponu arasında kanal başına RMS farkı (0-255 ölçeğinde).
+// Per-channel RMS difference between two RGBA8 buffers (on the 0-255 scale).
 export function rmsDifference(a: Uint8Array, b: Uint8Array): number {
-  if (a.length !== b.length) throw new Error("tampon boyutları eşit değil");
+  if (a.length !== b.length) throw new Error("buffer sizes are not equal");
   const pixels = Math.floor(a.length / 4);
   let sum = 0;
   for (let i = 0; i < pixels; i++) {
@@ -26,9 +26,9 @@ export function rmsDifference(a: Uint8Array, b: Uint8Array): number {
   return Math.sqrt(sum / (pixels * 3));
 }
 
-/** İki tampon arasındaki en büyük tek kanal farkı. Alfa yok sayılır. */
+/** Largest single-channel difference between two buffers. Alpha is ignored. */
 export function maxChannelDiff(a: Uint8Array, b: Uint8Array): number {
-  if (a.length !== b.length) throw new Error("tampon boyutları eşit değil");
+  if (a.length !== b.length) throw new Error("buffer sizes are not equal");
   const pixels = Math.floor(a.length / 4);
   let max = 0;
   for (let i = 0; i < pixels; i++) {

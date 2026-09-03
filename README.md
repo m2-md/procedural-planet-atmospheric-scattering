@@ -1,66 +1,66 @@
-# Prosedürel Gezegen + Atmosferik Saçılım — tek geçişte Rayleigh ve Mie
+# Procedural Planet + Atmospheric Scattering — Rayleigh and Mie in a single pass
 
-"İçine Uçabileceğiniz Bir Gezegen: Tek Geçişte Rayleigh ve Mie, 8×4'e Karşı
-32×16" makalesinin çalışan kodu. Ham WebGL2 (GLSL ES 3.00), TypeScript, Vite,
-vitest. `three.js` yok, shader/matematik kütüphanesi yok, **gökyüzü dokusu yok**.
+The working code for the article "A Planet You Can Fly Into: Rayleigh and Mie
+in a Single Pass, 8×4 vs 32×16". Raw WebGL2 (GLSL ES 3.00), TypeScript, Vite,
+vitest. No `three.js`, no shader/math library, **no sky texture**.
 
-Sahnede tek bir üçgen var (`gl_VertexID` bit hilesiyle üretilen tam ekran quad).
-Gökyüzünün mavisi, gün batımının kızıllığı, uzaydan görünen ince mavi kenar ve
-uzaktaki zeminin puslanması — hepsi tek bir fragment shader'ının içindeki
-saçılım integralinden çıkıyor.
+There is a single triangle in the scene (a fullscreen quad produced with the
+`gl_VertexID` bit trick). The blue of the sky, the red of the sunset, the thin
+blue rim seen from space and the haze over distant ground — all of it comes out
+of the scattering integral inside one fragment shader.
 
-## Ne içerir
+## What it contains
 
-- **Saf mantık katmanı** (`src/geometry.ts`, `src/camera.ts`, `src/phase.ts`,
+- **Pure logic layer** (`src/geometry.ts`, `src/camera.ts`, `src/phase.ts`,
   `src/scattering.ts`, `src/precision.ts`, `src/samples.ts`, `src/viewport.ts`,
-  `src/stats.ts`, `src/program.ts`) — tarayıcı tanımıyor, `vitest` ile test
-  ediliyor.
-- **Fragment shader** (`src/shaders/planet.frag.glsl`) — analitik ışın-küre
-  kesişimi, iki üstel yoğunluk profili, Rayleigh + Henyey-Greenstein faz
-  fonksiyonları, gezegen gölgesi, prosedürel zemin (value noise + fbm),
+  `src/stats.ts`, `src/program.ts`) — knows nothing about the browser, tested
+  with `vitest`.
+- **Fragment shader** (`src/shaders/planet.frag.glsl`) — analytic ray-sphere
+  intersection, two exponential density profiles, Rayleigh + Henyey-Greenstein
+  phase functions, planet shadow, procedural ground (value noise + fbm),
   aerial perspective, tonemap. `VIEW_SAMPLES` / `LIGHT_SAMPLES` /
-  `TERRAIN_OCTAVES` bu dosyada **tanımlı değildir**; `buildFragmentSource()`
-  onları `#version` satırının hemen ardına `#define` olarak enjekte eder.
-- **Örnek sayacı** (`src/probe.ts` + `src/samples.ts`) — piksel başına kaç
-  yoğunluk değerlendirmesi yapıldığı 16 bit olarak renk kanallarına yazılıp
-  geri okunuyor (`gl.disable(gl.DITHER)` bu yüzden zorunlu).
-- **GPU saati** (`src/timer.ts`) — `EXT_disjoint_timer_query_webgl2`, sorgu
-  kuyruğu, `GPU_DISJOINT_EXT` kontrolü. Uzantı yoksa çıktı bunu açıkça söyler
-  (`timerExt: false`) ve GPU ms yerine kare süresi raporlanır.
-- **Deterministik ölçüm modu** (`src/measure.ts`) — `?measure=1`.
+  `TERRAIN_OCTAVES` are **not defined** in that file; `buildFragmentSource()`
+  injects them as `#define`s right after the `#version` line.
+- **Sample counter** (`src/probe.ts` + `src/samples.ts`) — how many density
+  evaluations were done per pixel is written into the color channels as 16 bits
+  and read back (`gl.disable(gl.DITHER)` is mandatory because of it).
+- **GPU clock** (`src/timer.ts`) — `EXT_disjoint_timer_query_webgl2`, a query
+  queue, a `GPU_DISJOINT_EXT` check. When the extension is missing the output
+  says so plainly (`timerExt: false`) and reports frame time instead of GPU ms.
+- **Deterministic measurement mode** (`src/measure.ts`) — `?measure=1`.
 
-## Kurulum
+## Setup
 
 ```bash
 npm install
 ```
 
-## Test (tarayıcısız, deterministik)
+## Test (no browser, deterministic)
 
 ```bash
 npm test
 ```
 
-**91 test yeşil** (13 dosya):
+**91 tests green** (13 files):
 
-| Dosya                     | Ne sınıyor                                                                        | Test |
-| ------------------------- | --------------------------------------------------------------------------------- | ---- |
-| `test/geometry.test.ts`   | ışın-küre kesişimi, teğet/ıskalama/içeriden kenar durumları                       | 7    |
-| `test/vectors.test.ts`    | `normalize`/`cross`/`dot`, kesişim noktası yüzeyde mi                             | 4    |
-| `test/precision.test.ts`  | ufuk taraması: kararlı biçim vs sade biçim, 2–200 km                              | 3    |
-| `test/f32.test.ts`        | float32 ikizleri: zenitte fark yok, ıskalamada sonsuz                             | 3    |
-| `test/phase.test.ts`      | küre integrali = 1, `g = 0` → `1/4π`, simetri, `g → 1` koruması                   | 7    |
-| `test/scattering.test.ts` | yoğunluk monotonluğu, optik derinlik simetrisi, Beer-Lambert, gün batımı, `λ⁻⁴`   | 9    |
-| `test/density.test.ts`    | iki ölçek yüksekliği, `max(h, 0)` kuralı                                          | 4    |
-| `test/camera.test.ts`     | poz ortonormalliği, irtifanın taşınması, `basisMatrix`, ufuk açısı, gökyüzü bloğu | 12   |
-| `test/program.test.ts`    | `#version` ilk satırda kalıyor mu, define enjeksiyonu                             | 8    |
-| `test/constants.test.ts`  | **GLSL ↔ TypeScript sabit paritesi** (regex ile GLSL kaynağından okur)            | 9    |
-| `test/samples.test.ts`    | 16 bitlik sayaç kodlama/çözme turu, `sampleStats`                                 | 6    |
-| `test/viewport.test.ts`   | dpr/ölçek kelepçeleri, piksel bütçesi                                             | 7    |
-| `test/stats.test.ts`      | medyan/yüzdelik kenar durumları, RMS, maks kanal farkı                            | 12   |
+| File                      | What it tests                                                                        | Tests |
+| ------------------------- | ------------------------------------------------------------------------------------ | ----- |
+| `test/geometry.test.ts`   | ray-sphere intersection, tangent/miss/from-inside edge cases                         | 7     |
+| `test/vectors.test.ts`    | `normalize`/`cross`/`dot`, is the intersection point on the surface                  | 4     |
+| `test/precision.test.ts`  | horizon sweep: stable form vs naive form, 2–200 km                                   | 3     |
+| `test/f32.test.ts`        | float32 twins: no difference at the zenith, infinity on a miss                       | 3     |
+| `test/phase.test.ts`      | sphere integral = 1, `g = 0` → `1/4π`, symmetry, `g → 1` guard                       | 7     |
+| `test/scattering.test.ts` | density monotonicity, optical depth symmetry, Beer-Lambert, sunset, `λ⁻⁴`            | 9     |
+| `test/density.test.ts`    | the two scale heights, the `max(h, 0)` rule                                          | 4     |
+| `test/camera.test.ts`     | pose orthonormality, altitude being carried, `basisMatrix`, horizon angle, sky block | 12    |
+| `test/program.test.ts`    | does `#version` stay on the first line, define injection                             | 8     |
+| `test/constants.test.ts`  | **GLSL ↔ TypeScript constant parity** (reads the GLSL source with a regex)           | 9     |
+| `test/samples.test.ts`    | 16-bit counter encode/decode round trip, `sampleStats`                               | 6     |
+| `test/viewport.test.ts`   | dpr/scale clamps, pixel budget                                                       | 7     |
+| `test/stats.test.ts`      | median/percentile edge cases, RMS, max channel difference                            | 12    |
 
-Hiçbir test dosyası `document`, `window`, `navigator`, `WebGL2RenderingContext`
-ya da `performance` referansı içermez.
+No test file contains a reference to `document`, `window`, `navigator`,
+`WebGL2RenderingContext` or `performance`.
 
 ## Demo
 
@@ -68,178 +68,190 @@ ya da `performance` referansı içermez.
 npm run dev
 ```
 
-`file://` ile açmayın — boş ekran verir (Vite bare module specifier'ları çözer).
+Do not open it with `file://` — you get a blank screen (Vite resolves bare
+module specifiers).
 
-Canvas **tam ekran değil**: 960 piksel genişliğinde 16:9 bir kutu. Varsayılan
-bütçe 16 görüş × 8 ışık örneği, çözünürlük ölçeği 0.5, `devicePixelRatio` 2'ye
-kelepçeli ve toplam arka tampon 1.400.000 pikselin altında tutuluyor. İlk
-açılışta kimse fırının içine düşmüyor.
+The canvas is **not fullscreen**: a 16:9 box 960 pixels wide. The default
+budget is 16 view × 8 light samples, resolution scale 0.5, `devicePixelRatio`
+clamped to 2 and the total backbuffer kept under 1,400,000 pixels. Nobody falls
+into the oven on first load.
 
-| Kontrol            | Değerler                | Varsayılan |
-| ------------------ | ----------------------- | ---------- |
-| Görüş örneği N     | 8 / 16 / 32 / 64        | **16**     |
-| Işık örneği M      | 2 / 4 / 8 / 16 / 32     | **8**      |
-| İrtifa (log ölçek) | 2 – 30.000 km           | 400 km     |
-| Güneş yüksekliği   | −10° – 60°              | 12°        |
-| Mie `g`            | 0 – 0.95                | 0.76       |
-| Pozlama            | 0.5 – 6                 | 2.0        |
-| Çözünürlük ölçeği  | 0.35 / 0.5 / 0.75 / 1.0 | **0.5**    |
-| Mod                | Gölgeli / Örnek sayısı  | Gölgeli    |
-| Dur/Devam          | —                       | Çalışıyor  |
+| Control          | Values                  | Default |
+| ---------------- | ----------------------- | ------- |
+| View samples N   | 8 / 16 / 32 / 64        | **16**  |
+| Light samples M  | 2 / 4 / 8 / 16 / 32     | **8**   |
+| Altitude (log)   | 2 – 30,000 km           | 400 km  |
+| Sun elevation    | −10° – 60°              | 12°     |
+| Mie `g`          | 0 – 0.95                | 0.76    |
+| Exposure         | 0.5 – 6                 | 2.0     |
+| Resolution scale | 0.35 / 0.5 / 0.75 / 1.0 | **0.5** |
+| Mode             | Shaded / Sample count   | Shaded  |
+| Pause/Resume     | —                       | Running |
 
-Sekme arkaya geçtiğinde döngü kendiliğinden duruyor (`visibilitychange`);
-gizli sekmede `requestAnimationFrame`'in yavaşlaması "kapandı" demek değil.
+When the tab goes to the background the loop stops on its own
+(`visibilitychange`); `requestAnimationFrame` slowing down in a hidden tab does
+not mean "it shut off".
 
-HUD iki gruba ayrılmış: **ÖLÇÜM** (FPS, kare ms, GPU ms, ortalama örnek/piksel,
-kaplama %) ve **YAPISAL** (N × M, irtifa, güneş yüksekliği, `g`, pozlama, arka
-tampon boyutu). Ölçülen ile seçilen aynı kutuda karışmıyor.
+The HUD is split into two groups: **MEASURED** (FPS, frame ms, GPU ms, avg.
+samples/pixel, coverage %) and **STRUCTURAL** (N × M, altitude, sun elevation,
+`g`, exposure, backbuffer size). What is measured and what was picked do not
+get mixed in the same box.
 
-### Gözle bakılacaklar
+### Things to look at
 
-1. **400 km, güneş 12°** (varsayılan): gezegenin kenarında dışa doğru sönen
-   ince mavi bir halka.
-2. **Güneş yüksekliği sürgüsünü 40° → 0° → −5°**: 2 km irtifada ufuk turuncuya
-   dönüyor, güneş diski kadrajın sağında; makalenin açılış iddiası bu.
-3. **Mie `g` 0 → 0.95**: güneşin çevresindeki hâle büyüyüp yoğunlaşıyor.
-4. **İrtifayı 30.000 km'den 2 km'ye indirin**: ufuk çizgisi titremeden
-   oturuyor. (`uCamAltitude` konumdan yeniden hesaplansaydı kaynardı.)
-5. **20.000 km**: prosedürel kıta/okyanus deseni ve kutup kapakları görünür
-   ölçekte. Alçak irtifada zemin tamamen aerial perspective'in altında kalır —
-   gürültü ölçeği (yarıçapın ~1/4'ü) böyle davranıyor.
-6. **Mod = Örnek sayısı**: uzayda atmosferi ıskalayan bölge tamamen siyah
-   (0 örnek), atmosfere değen her piksel **düz** yeşil (16×8 için 144 = tavan).
-   Düz olması makalenin iddiasının görsel kanıtı: döngü sayısı yol uzunluğuna
-   değil `VIEW_SAMPLES`'a bağlı.
+1. **400 km, sun at 12°** (default): a thin blue ring on the planet's edge,
+   fading outward.
+2. **Drag the sun elevation slider 40° → 0° → −5°**: at 2 km altitude the
+   horizon turns orange, the sun disk is on the right of the frame; this is the
+   opening claim of the article.
+3. **Mie `g` 0 → 0.95**: the halo around the sun grows and thickens.
+4. **Bring the altitude down from 30,000 km to 2 km**: the horizon line settles
+   without shimmering. (It would boil if `uCamAltitude` were recomputed from
+   the position.)
+5. **20,000 km**: the procedural continent/ocean pattern and polar caps at a
+   visible scale. At low altitude the ground stays entirely under the aerial
+   perspective — that is how the noise scale (~1/4 of the radius) behaves.
+6. **Mode = Sample count**: in space the region that misses the atmosphere is
+   completely black (0 samples), and every pixel touching the atmosphere is
+   **flat** green (144 = the ceiling for 16×8). That flatness is the visual
+   proof of the article's claim: the loop count depends on `VIEW_SAMPLES`, not
+   on the path length.
 
-## Deterministik ölçüm modu
+## Deterministic measurement mode
 
 ```
 http://localhost:5173/?measure=1
 ```
 
-Bu adreste demo interaktif modu tamamen bırakır:
+At this address the demo drops interactive mode entirely:
 
-- Arka tampon **960×540**'a kilitlenir (`devicePixelRatio` ve ölçek yok sayılır).
-- rAF döngüsü kapalı; kareler `drawOnce()` ile sırayla sürülür, animasyon yok.
-- Her yapılandırma için **30 ısınma karesi** atılır, sonra **180 kare** ölçülür.
-- Bitince konsola **TEK SATIR** `MEASURE {json}` düşer.
-- Tam koşu bu makinede ~27 saniye sürüyor. Koşu boyunca sekmeyi ön planda
-  tutun; gizli sekmede rAF yavaşlar ve ölçüm uzar.
+- The backbuffer locks to **960×540** (`devicePixelRatio` and scale are ignored).
+- The rAF loop is off; frames are driven one after another with `drawOnce()`,
+  no animation.
+- For every configuration **30 warmup frames** are thrown away, then **180
+  frames** are measured.
+- When it finishes, a **SINGLE LINE** `MEASURE {json}` lands in the console.
+- A full run takes ~27 seconds on this machine. Keep the tab in the foreground
+  throughout the run; in a hidden tab rAF slows down and the measurement drags.
 
-Ölçüm URL'leri:
+Measurement URLs:
 
-| Amaç                             | URL                                                                     |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| Etkileşimli demo                 | `http://localhost:5173/`                                                |
-| Deterministik ölçüm              | `http://localhost:5173/?measure=1`                                      |
-| Üretim derlemesi üzerinden ölçüm | `npm run build && npm run preview` → `http://localhost:4173/?measure=1` |
+| Purpose                         | URL                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| Interactive demo                | `http://localhost:5173/`                                                |
+| Deterministic measurement       | `http://localhost:5173/?measure=1`                                      |
+| Measurement over the prod build | `npm run build && npm run preview` → `http://localhost:4173/?measure=1` |
 
-### Sabit pozlar
+### Fixed poses
 
-`fovY = 50°`, `lat = 18°`, `lon = 40°`, Mie `g = 0.76`, pozlama `2.0`,
-`TERRAIN_OCTAVES = 4`. Pitch kuralı her irtifada `-dip + 2°`
-(`dip = acos(R_GROUND / (R_GROUND + h))`), böylece ufuk kadrajda kalır.
+`fovY = 50°`, `lat = 18°`, `lon = 40°`, Mie `g = 0.76`, exposure `2.0`,
+`TERRAIN_OCTAVES = 4`. The pitch rule is `-dip + 2°` at every altitude
+(`dip = acos(R_GROUND / (R_GROUND + h))`), so the horizon stays in frame.
 
-| Poz      | İrtifa   | pitch    | Güneş yüksekliği |
-| -------- | -------- | -------- | ---------------- |
-| `space`  | 1.000 km | −28,193° | 25°              |
-| `ground` | 2 km     | +0,565°  | 8°               |
+| Pose     | Altitude | pitch    | Sun elevation |
+| -------- | -------- | -------- | ------------- |
+| `space`  | 1,000 km | −28.193° | 25°           |
+| `ground` | 2 km     | +0.565°  | 8°            |
 
-Güneş azimutu kameranın baktığı yönden doğuya **18°** sapmalı. Sıfır olsaydı
-güneş diski tam kadraj ortasına, yani gökyüzü ölçüm bloğunun içine düşer ve
-R/B oranını bozardı; 90° olsaydı disk kadrajdan tamamen çıkardı.
+The sun azimuth is **18°** east of the direction the camera looks at. Had it
+been zero, the sun disk would land dead center in the frame, that is, inside the
+sky measurement block, and would ruin the R/B ratio; at 90° the disk would leave
+the frame entirely.
 
-### Koşu listesi
+### Run list
 
-| Koşu  | Poz                                | N×M                               | Ölçülen                                                                                                 |
-| ----- | ---------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| A1–A4 | space                              | 8×4, 16×8, 32×16, 64×32           | GPU ms medyan/p95, kare ms medyan, `compileMs`, `firstDrawMs`, `meanSamples`, `coveragePct`, `rmsVsRef` |
-| B1–B3 | space                              | 32×2, 16×4, 8×8                   | GPU ms medyan, RMS (A4 karesine göre)                                                                   |
-| C0–C3 | ground                             | 64×32 (referans), 32×2, 16×4, 8×8 | GPU ms medyan, RMS (C0'a göre)                                                                          |
-| D1–D5 | 20000 / 1000 / 100 / 10 / 2 km     | 16×8                              | GPU ms medyan, `coveragePct`, `meanSamples`                                                             |
-| E1–E4 | ground, güneş 30° / 10° / 0° / −2° | 16×8                              | gökyüzü bloğu ortalama RGB + R/B oranı                                                                  |
-| F     | —                                  | —                                 | `horizonSweep({ altitudeKm: 2, spanDeg: 0.3, samples: 400 })` (saf CPU)                                 |
+| Run   | Pose                             | N×M                                | Measured                                                                                                 |
+| ----- | -------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| A1–A4 | space                            | 8×4, 16×8, 32×16, 64×32            | GPU ms median/p95, frame ms median, `compileMs`, `firstDrawMs`, `meanSamples`, `coveragePct`, `rmsVsRef` |
+| B1–B3 | space                            | 32×2, 16×4, 8×8                    | GPU ms median, RMS (against the A4 frame)                                                                |
+| C0–C3 | ground                           | 64×32 (reference), 32×2, 16×4, 8×8 | GPU ms median, RMS (against C0)                                                                          |
+| D1–D5 | 20000 / 1000 / 100 / 10 / 2 km   | 16×8                               | GPU ms median, `coveragePct`, `meanSamples`                                                              |
+| E1–E4 | ground, sun 30° / 10° / 0° / −2° | 16×8                               | sky block mean RGB + R/B ratio                                                                           |
+| F     | —                                | —                                  | `horizonSweep({ altitudeKm: 2, spanDeg: 0.3, samples: 400 })` (pure CPU)                                 |
 
-Referans kare (64×32) her pozda **ilk** çekilir; RMS karşılaştırmaları aynı
-pozda, aynı arka tamponda, `readFrame()` ile alınan RGBA8 tamponlar üzerinden
-yapılır.
+The reference frame (64×32) is taken **first** at every pose; the RMS
+comparisons are done at the same pose, on the same backbuffer, over RGBA8
+buffers taken with `readFrame()`.
 
-Gökyüzü bloğu: `skyProbeRect(groundPose, 50°, 960, 540, 2°)` →
-`{ x: 448, y: 262, width: 64, height: 16 }` (GL, sol-alt orijin). Ufkun tam 2°
-üstü, güneş diskinden 18° uzakta.
+Sky block: `skyProbeRect(groundPose, 50°, 960, 540, 2°)` →
+`{ x: 448, y: 262, width: 64, height: 16 }` (GL, bottom-left origin). Exactly 2°
+above the horizon, 18° away from the sun disk.
 
-### `MEASURE {json}` → makale eşlemesi
+### `MEASURE {json}` → article mapping
 
-| Makaledeki alan                                        | JSON yolu                                              |
-| ------------------------------------------------------ | ------------------------------------------------------ |
-| GPU adı                                                | `gpu`                                                  |
-| ölçülen kare sayısı                                    | `frames`                                               |
-| kararlı / sade biçim maks sapma                        | `precision.stableMaxErrKm` / `precision.naiveMaxErrKm` |
-| bütçe tablosu (ortalama örnek, medyan/p95 GPU ms, RMS) | `budgets[]` (`view`, `light` ile eşleşir)              |
-| 32×16 / 8×4 oranı                                      | `ratio32x16over8x4`                                    |
-| derleme + link / ilk kare                              | `budgets[].compileMs` / `budgets[].firstDrawMs`        |
-| eşit çarpım tablosu                                    | `equalProduct.space[]` / `equalProduct.ground[]`       |
-| irtifa tablosu                                         | `altitude[]`                                           |
-| gün batımı R/B tablosu                                 | `sunset[].redBlueRatio`                                |
+| Field in the article                                | JSON path                                              |
+| --------------------------------------------------- | ------------------------------------------------------ |
+| GPU name                                            | `gpu`                                                  |
+| number of measured frames                           | `frames`                                               |
+| max deviation of the stable / naive form            | `precision.stableMaxErrKm` / `precision.naiveMaxErrKm` |
+| budget table (mean samples, median/p95 GPU ms, RMS) | `budgets[]` (keyed by `view`, `light`)                 |
+| 32×16 / 8×4 ratio                                   | `ratio32x16over8x4`                                    |
+| compile + link / first frame                        | `budgets[].compileMs` / `budgets[].firstDrawMs`        |
+| equal-product table                                 | `equalProduct.space[]` / `equalProduct.ground[]`       |
+| altitude table                                      | `altitude[]`                                           |
+| sunset R/B table                                    | `sunset[].redBlueRatio`                                |
 
-`timerExt: false` gelirse GPU ms sütunları **doldurulmaz**; yerlerine
-`wallMsMedian` yazılır ve sütun başlığı "kare süresi (ms)" olur.
-`ratioSource` alanı oranın hangi saatten çıktığını söyler.
+If `timerExt: false` comes back, the GPU ms columns are **left empty**;
+`wallMsMedian` is written in their place and the column header becomes
+"frame time (ms)". The `ratioSource` field says which clock the ratio came from.
 
-`gpu` için `WEBGL_debug_renderer_info` denenir; tarayıcı vermezse
-`"bilinmiyor"` yazılır.
+`WEBGL_debug_renderer_info` is attempted for `gpu`; when the browser does not
+hand it over, `"unknown"` is written.
 
-### Ham koşu kaydı
+### Raw run log
 
-Ölçüm sonrası ham `MEASURE` satırları depo kökünde
-`measurements-YYYY-MM-DD.jsonl` olarak saklanır (her satır bir koşu).
-Soğuk derleme satırları (`compileMs`, `firstDrawMs`) **sayfa başına tek
-gözlemdir** ve dosyada `"cold": true` ile işaretlenir. GPU zaman damgaları
-kuantize gelirse (örn. 65,5 µs'nin katları) satıra `"quantized": true` notu
-düşülür; `MEASURE` çıktısı ham medyanı verir, kararlılık yorumu yapmaz.
+After a measurement the raw `MEASURE` lines are kept at the repository root as
+`measurements-YYYY-MM-DD.jsonl` (one line per run). The cold-compile lines
+(`compileMs`, `firstDrawMs`) are **a single observation per page** and are
+flagged with `"cold": true` in the file. If the GPU timestamps come back
+quantized (e.g. multiples of 65.5 µs) the line gets a `"quantized": true` note;
+the `MEASURE` output gives the raw median, it makes no stability judgement.
 
-## Bilinen sınırlar
+## Known limits
 
-- **Ozon yok.** Gerçek atmosferde 25 km civarında ışığı yutan ama saçmayan bir
-  katman var; alacakaranlıkta gökyüzünün tepesindeki derin maviyi büyük ölçüde o
-  kuruyor. Burada güneş ufkun altına inince gökyüzü olması gerekenden çabuk
-  griye düşüyor.
-- **Çoklu saçılma yok.** Tek geçişli model: ışık bir kez sapıp göze geliyor.
-- **Eşit aralıklı görüş örneklemesi.** Uzaydan limb'e bakarken ışın kabuk
-  içinde 2.000 km'den fazla yol alıyor; 8 örnekle dilim boyu 250 km'yi aşıyor ve
-  ölçek yüksekliği 8 km. RMS sütununun büyük çıktığı yer burası. Doğru çözüm
-  önem örneklemesi ya da önceden hesaplanmış geçirgenlik tablosu.
-- **Düşük irtifada gündüz manzarası beyaza doyuyor.** 2 km irtifada ufka yakın
-  bakarken görüş ışını yüzlerce kilometre yoğun havadan geçiyor; tek saçılma +
-  basit exp tonemap bunu doygun bırakıyor. Pozlama sürgüsü var ama sorunun
-  kaynağı pozlama değil, modelin kendisi.
+- **No ozone.** In the real atmosphere there is a layer around 25 km that
+  absorbs light without scattering it; at twilight it is largely what builds the
+  deep blue at the top of the sky. Here, once the sun drops below the horizon,
+  the sky falls to gray faster than it should.
+- **No multiple scattering.** A single-pass model: light bends once and reaches
+  the eye.
+- **Evenly spaced view sampling.** Looking at the limb from space, the ray
+  travels more than 2,000 km inside the shell; with 8 samples the slice length
+  passes 250 km while the scale height is 8 km. That is where the RMS column
+  comes out large. The right fix is importance sampling or a precomputed
+  transmittance table.
+- **The daytime view at low altitude saturates to white.** At 2 km altitude,
+  looking near the horizon, the view ray passes through hundreds of kilometers
+  of dense air; single scattering + a simple exp tonemap leaves that saturated.
+  There is an exposure slider, but the source of the problem is not exposure,
+  it is the model itself.
 
-## Dosya haritası
+## File map
 
 ```
 src/
-  constants.ts    fiziksel sabitler (GLSL ile parite testi var)
-  geometry.ts     vektörler, ışın-küre, float32 ikizleri
-  camera.ts       CameraPose, poseAtAltitude, basisMatrix, ufuk açısı, güneş yönü
-  precision.ts    ufuk taraması: kararlı vs sade kesişim biçimi
-  phase.ts        Rayleigh + Henyey-Greenstein, küre integrali
-  scattering.ts   yoğunluk, optik derinlik, Beer-Lambert (CPU ikizleri)
-  program.ts      define enjeksiyonu, derleme/link, satır numaralı hata dökümü
+  constants.ts    physical constants (parity test against the GLSL)
+  geometry.ts     vectors, ray-sphere, float32 twins
+  camera.ts       CameraPose, poseAtAltitude, basisMatrix, horizon angle, sun direction
+  precision.ts    horizon sweep: stable vs naive intersection form
+  phase.ts        Rayleigh + Henyey-Greenstein, sphere integral
+  scattering.ts   density, optical depth, Beer-Lambert (CPU twins)
+  program.ts      define injection, compile/link, line-numbered error dump
   modes.ts        MODE_SHADED / MODE_SAMPLE_COUNT
-  probe.ts        240×135 RGBA8 FBO, örnek sayacı geri okuma
-  samples.ts      16 bit sayaç çözme, SampleStats
-  viewport.ts     dpr/ölçek kelepçeleri, piksel bütçesi
+  probe.ts        240×135 RGBA8 FBO, sample counter readback
+  samples.ts      16-bit counter decoding, SampleStats
+  viewport.ts     dpr/scale clamps, pixel budget
   timer.ts        GpuTimer (EXT_disjoint_timer_query_webgl2)
-  stats.ts        medyan, yüzdelik, RMS, maks kanal farkı
-  renderer.ts     program önbelleği, uniform'lar, probe, readFrame
-  measure.ts      ?measure=1 koşu listesi → MEASURE {json}
-  hud.ts          ÖLÇÜM / YAPISAL ayrımı
-  main.ts         bootstrap, kontroller, Dur/Devam, visibilitychange
+  stats.ts        median, percentile, RMS, max channel difference
+  renderer.ts     program cache, uniforms, probe, readFrame
+  measure.ts      ?measure=1 run list → MEASURE {json}
+  hud.ts          MEASURED / STRUCTURAL split
+  main.ts         bootstrap, controls, Pause/Resume, visibilitychange
   shaders/
-    fullscreen.vert.glsl   gl_VertexID'den üç köşe
-    planet.frag.glsl       bütün saçılım hesabı
+    fullscreen.vert.glsl   three corners from gl_VertexID
+    planet.frag.glsl       the whole scattering computation
 ```
 
-## Lisans
+## License
 
-MIT — bkz. `LICENSE`.
+MIT — see `LICENSE`.

@@ -1,8 +1,8 @@
 export interface SampleStats {
   readonly pixels: number;
-  readonly mean: number; // atmosfere değen piksellerin ortalaması değil, TÜM piksellerin
+  readonly mean: number; // not the mean of pixels touching the atmosphere, of ALL pixels
   readonly max: number;
-  readonly coveragePct: number; // en az bir örnek alan piksellerin yüzdesi
+  readonly coveragePct: number; // percentage of pixels taking at least one sample
 }
 
 export function sampleStats(pixels: Uint8Array): SampleStats {
@@ -29,9 +29,9 @@ export function sampleStats(pixels: Uint8Array): SampleStats {
 }
 
 /**
- * Shader'daki iki baytlık kodlamanın CPU aynası:
+ * CPU mirror of the two-byte encoding in the shader:
  *   hi = n / 256, lo = n - hi * 256
- * Kanallar 0-255 bayt olarak geri geliyor, `sampleStats` bunu çözüyor.
+ * The channels come back as 0-255 bytes, `sampleStats` decodes them.
  */
 export function encodeCount16(n: number): [number, number] {
   const clamped = Math.min(Math.max(Math.trunc(n), 0), 65535);

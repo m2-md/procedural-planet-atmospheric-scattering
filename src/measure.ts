@@ -28,7 +28,7 @@ export const SPACE_SUN_ELEV_DEG = 25;
 export const GROUND_ALTITUDE_KM = 2;
 export const GROUND_SUN_ELEV_DEG = 8;
 
-/** Ana bütçe tablosu. */
+/** The main budget table. */
 const BUDGETS: ReadonlyArray<readonly [number, number]> = [
   [8, 4],
   [16, 8],
@@ -36,7 +36,7 @@ const BUDGETS: ReadonlyArray<readonly [number, number]> = [
   [64, 32],
 ];
 
-/** N·M çarpımı sabit (64), bölüşüm değişiyor. */
+/** The N·M product is fixed (64), only the split changes. */
 const EQUAL_PRODUCT: ReadonlyArray<readonly [number, number]> = [
   [32, 2],
   [16, 4],
@@ -153,11 +153,11 @@ function poseReport(altitudeKm: number, sunElevDeg: number): PoseReport {
 
 function rendererName(gl: WebGL2RenderingContext): string {
   const ext = gl.getExtension("WEBGL_debug_renderer_info");
-  if (!ext) return "bilinmiyor";
+  if (!ext) return "unknown";
   const name = gl.getParameter(
     (ext as { UNMASKED_RENDERER_WEBGL: number }).UNMASKED_RENDERER_WEBGL,
   );
-  return typeof name === "string" && name.length > 0 ? name : "bilinmiyor";
+  return typeof name === "string" && name.length > 0 ? name : "unknown";
 }
 
 async function runConfig(
@@ -183,7 +183,7 @@ async function runConfig(
   };
 }
 
-/** Bir dikdörtgenin kanal ortalaması (RGBA8, GL sol-alt orijin). */
+/** Per-channel mean of a rectangle (RGBA8, GL bottom-left origin). */
 function blockMeanRgb(
   pixels: Uint8Array,
   width: number,
@@ -207,9 +207,9 @@ function blockMeanRgb(
 }
 
 /**
- * Deterministik ölçüm modu (`?measure=1`).
- * Arka tampon 960×540'a kilitli, kamera/güneş sabit, animasyon yok.
- * Sonuç TEK satır `MEASURE {json}` olarak dışarı verilir.
+ * Deterministic measurement mode (`?measure=1`).
+ * Backbuffer locked to 960×540, camera/sun fixed, no animation.
+ * The result is emitted as a SINGLE line, `MEASURE {json}`.
  */
 export async function runMeasurement(
   renderer: Renderer,
@@ -230,7 +230,7 @@ export async function runMeasurement(
     PITCH_ABOVE_HORIZON_DEG,
   );
 
-  // --- Uzay pozu: referans kare önce çekilir (RMS tabanı) -------------------
+  // --- Space pose: the reference frame is taken first (RMS base) -----------
   renderer.setPose(spacePose);
   renderer.setSunElevation(SPACE_SUN_ELEV_DEG);
   renderer.useBudget(REFERENCE_VIEW, REFERENCE_LIGHT);
@@ -274,7 +274,7 @@ export async function runMeasurement(
     });
   }
 
-  // --- Yer pozu -------------------------------------------------------------
+  // --- Ground pose ---------------------------------------------------------
   renderer.setPose(groundPose);
   renderer.setSunElevation(GROUND_SUN_ELEV_DEG);
   renderer.useBudget(REFERENCE_VIEW, REFERENCE_LIGHT);
@@ -295,7 +295,7 @@ export async function runMeasurement(
     });
   }
 
-  // --- İrtifa taraması (sabit 16×8) ----------------------------------------
+  // --- Altitude sweep (fixed 16×8) -----------------------------------------
   const altitude: AltitudeReport[] = [];
   for (const altKm of ALTITUDES_KM) {
     renderer.setPose(poseForAltitude(altKm));
@@ -314,7 +314,7 @@ export async function runMeasurement(
     });
   }
 
-  // --- Gün batımı: ufkun 2 derece üstündeki gökyüzü bloğu -------------------
+  // --- Sunset: the sky block 2 degrees above the horizon -------------------
   renderer.setPose(groundPose);
   renderer.useBudget(16, 8);
   const sunset: SunsetReport[] = [];
@@ -329,7 +329,7 @@ export async function runMeasurement(
     });
   }
 
-  // --- Saf CPU: ufuk hassasiyeti -------------------------------------------
+  // --- Pure CPU: horizon precision -----------------------------------------
   const sweep = horizonSweep({ altitudeKm: 2, spanDeg: 0.3, samples: 400 });
 
   const timerExt = renderer.timer.available;

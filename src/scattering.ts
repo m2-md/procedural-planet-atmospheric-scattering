@@ -7,9 +7,9 @@ export interface Density {
 }
 
 /**
- * GLSL `densityAt` fonksiyonunun CPU ikizi. Fark: orada konumdan yükseklik
- * çıkarılıyor, burada yükseklik doğrudan veriliyor.
- * Yer altı (negatif irtifa) 0'a kırpılır — `max(h, 0.0)` ile aynı kural.
+ * CPU twin of the GLSL `densityAt` function. The difference: there the height
+ * is derived from the position, here the height is handed in directly.
+ * Underground (negative altitude) clamps to 0 — the same `max(h, 0.0)` rule.
  */
 export function densityAt(heightKm: number): Density {
   const h = Math.max(heightKm, 0);
@@ -20,8 +20,8 @@ export function densityAt(heightKm: number): Density {
 }
 
 /**
- * a → b doğru parçası boyunca optik derinlik. Shader ile aynı orta-nokta
- * kuralı: dilim ortasında örnekle, yoğunluğu dilim boyuyla çarp.
+ * Optical depth along the segment a → b. The same midpoint rule as the
+ * shader: sample at the middle of the slice, multiply density by slice length.
  */
 export function opticalDepth(a: Vec3, b: Vec3, samples: number): Density {
   const dx = b[0] - a[0];

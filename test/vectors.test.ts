@@ -2,18 +2,18 @@ import { describe, expect, it } from "vitest";
 import { cross, dot, normalize, raySphere } from "../src/geometry";
 import type { Vec3 } from "../src/geometry";
 
-describe("vektör yardımcıları", () => {
-  it("normalize birim uzunluk verir", () => {
+describe("vector helpers", () => {
+  it("normalize gives unit length", () => {
     const v = normalize([3, -4, 12]);
     expect(Math.hypot(v[0], v[1], v[2])).toBeCloseTo(1, 12);
   });
 
-  it("sıfır vektörde normalize sıfır döner (NaN yok)", () => {
+  it("normalize returns zero for the zero vector (no NaN)", () => {
     const v = normalize([0, 0, 0]);
     expect(v.every(Number.isFinite)).toBe(true);
   });
 
-  it("cross her iki girdiye de diktir", () => {
+  it("cross is perpendicular to both inputs", () => {
     const a: Vec3 = normalize([0.3, 0.9, -0.2]);
     const b: Vec3 = normalize([-0.7, 0.1, 0.5]);
     const c = cross(a, b);
@@ -22,10 +22,10 @@ describe("vektör yardımcıları", () => {
   });
 });
 
-describe("kesişim noktaları gerçekten yüzeye düşer", () => {
-  it("rastgele beş ışında |ro + rd*t| = yarıçap", () => {
+describe("intersection points really land on the surface", () => {
+  it("|ro + rd*t| = radius for five random rays", () => {
     const radius = 3.25;
-    // Sabit tohumlu, tekrarlanabilir bir sözde-rastgele üreteç.
+    // A fixed-seed, repeatable pseudo-random generator.
     let seed = 12345;
     const rand = () => {
       seed = (seed * 1103515245 + 12345) % 2147483648;

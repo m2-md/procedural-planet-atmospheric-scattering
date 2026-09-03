@@ -10,36 +10,36 @@ import {
 } from "./geometry";
 
 export interface HorizonSweepOptions {
-  /** Kamera irtifası, km. */
+  /** Camera altitude, km. */
   altitudeKm: number;
-  /** Ufuk açısının çevresinde taranan yarım aralık, derece. */
+  /** Half-range swept around the horizon angle, degrees. */
   spanDeg: number;
-  /** Toplam (konum, yön) çifti sayısı. */
+  /** Total number of (position, direction) pairs. */
   samples: number;
 }
 
 export interface HorizonSweepResult {
-  /** `dot(ro,ro) - r*r` biçiminin double referansından en büyük sapması, km. */
+  /** Largest deviation of the `dot(ro,ro) - r*r` form from the double reference, km. */
   naiveMaxErrKm: number;
-  /** `h * (h + 2r)` biçiminin en büyük sapması, km. */
+  /** Largest deviation of the `h * (h + 2r)` form, km. */
   stableMaxErrKm: number;
-  /** naive / stable. 1'in altına inerse kararlı biçim daha kötü demektir. */
+  /** naive / stable. Dropping below 1 means the stable form is the worse one. */
   ratio: number;
-  /** Gerçekten zemine çarpan, dolayısıyla karşılaştırılabilen örnek sayısı. */
+  /** Number of samples that actually hit the ground and are thus comparable. */
   used: number;
 }
 
 /**
- * `c` terimindeki katastrofik iptal, kamera konumuna bağlı bir yuvarlama
- * hatası. Tek bir konumda hata sıfıra denk gelebilir (iki büyük karenin
- * yuvarlamaları birbirini götürür), o yüzden tarama gezegen üzerine dağılmış
- * POSITIONS ayrı kamera konumundan geçiyor. Her konumda ufuk açısının
- * ±spanDeg çevresinde eşit aralıklı yönler taranıyor; toplam yön sayısı
- * `samples`.
+ * The catastrophic cancellation in the `c` term is a rounding error that
+ * depends on the camera position. At a single position the error can land on
+ * zero (the roundings of the two large squares cancel each other out), so the
+ * sweep goes through POSITIONS separate camera positions spread over the
+ * planet. At each position, evenly spaced directions are swept ±spanDeg around
+ * the horizon angle; the total number of directions is `samples`.
  *
- * Referans: aynı kesişimin double duyarlıkla, yuvarlanmamış kamera konumuyla
- * hesaplanmış hâli. Kıyaslanan iki uygulama ise uniform'a giderken float32'ye
- * kırpılmış konum ve yön alıyor — GPU'da olan tam olarak bu.
+ * Reference: the same intersection in double precision with an unrounded
+ * camera position. The two implementations compared take a position and
+ * direction clamped to float32 on the way into a uniform — what the GPU does.
  */
 const POSITIONS = 20;
 const GOLDEN_ANGLE_DEG = 137.50776405003785;
@@ -69,7 +69,7 @@ export function horizonSweep(options: HorizonSweepOptions): HorizonSweepResult {
     const { up, tangent } = localFrame(roExact);
 
     for (let i = 0; i < perPosition; i++) {
-      // Ufkun altından üstüne doğru tara; teğet nokta tam ortada.
+      // Sweep from below the horizon to above it; the tangent point is dead center.
       const theta = -dip - span + ((i + 0.5) / perPosition) * 2 * span;
       const ct = Math.cos(theta);
       const st = Math.sin(theta);
@@ -79,7 +79,7 @@ export function horizonSweep(options: HorizonSweepOptions): HorizonSweepResult {
         tangent[2] * ct + up[2] * st,
       ]);
       const reference = raySphere(roExact, rdExact, R_GROUND);
-      if (reference[0] > reference[1]) continue; // ışın zemini ıskaladı
+      if (reference[0] > reference[1]) continue; // the ray missed the ground
 
       const rd32 = toF32(rdExact);
       const naive = groundHitNaiveF32(ro32, rd32, R_GROUND);

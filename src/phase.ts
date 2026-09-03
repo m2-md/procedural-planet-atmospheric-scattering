@@ -8,8 +8,8 @@ export function phaseMie(mu: number, g: number): number {
   return (1 - gg) / (4 * Math.PI * denom * Math.sqrt(Math.max(denom, 1e-4)));
 }
 
-// Küre üzerindeki integral: ∫ p(mu) dΩ = 2π ∫ p(mu) dmu, mu ∈ [-1, 1].
-// Orta-nokta kuralı, tek yönlü simetri olduğu için azimut analitik.
+// Integral over the sphere: ∫ p(mu) dΩ = 2π ∫ p(mu) dmu, mu ∈ [-1, 1].
+// Midpoint rule; the azimuth is analytic because the symmetry is one-axis.
 export function integrateOverSphere(
   phase: (mu: number) => number,
   samples: number,

@@ -16,7 +16,7 @@ import {
 
 function need<T extends Element>(selector: string): T {
   const el = document.querySelector<T>(selector);
-  if (!el) throw new Error(`DOM düğümü yok: ${selector}`);
+  if (!el) throw new Error(`no DOM node: ${selector}`);
   return el;
 }
 
@@ -43,7 +43,7 @@ try {
 } catch (error) {
   canvas.remove();
   banner.hidden = false;
-  banner.textContent = `Bu tarayıcıda WebGL2 yok, demo çalışamaz. (${String(error)})`;
+  banner.textContent = `This browser has no WebGL2, the demo cannot run. (${String(error)})`;
   throw error;
 }
 
@@ -57,7 +57,7 @@ canvas.addEventListener(
     event.preventDefault();
     setRunning(false);
     banner.hidden = false;
-    banner.textContent = "WebGL bağlamı kayboldu. Sayfayı yenileyin.";
+    banner.textContent = "The WebGL context was lost. Reload the page.";
     console.warn("webglcontextlost");
   },
   false,
@@ -75,11 +75,11 @@ function loop(now: number) {
 function setRunning(next: boolean): void {
   if (next === running) return;
   running = next;
-  toggleButton.textContent = running ? "Dur" : "Devam";
+  toggleButton.textContent = running ? "Pause" : "Resume";
   if (running) {
     frameId = requestAnimationFrame(loop);
   } else {
-    hud.setNote("Döngü duraklatıldı — sayaçlar donduruldu.");
+    hud.setNote("Loop paused — the counters are frozen.");
     cancelAnimationFrame(frameId);
   }
 }
@@ -89,7 +89,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) setRunning(false);
 });
 
-/** Sürgü 0-1000 arası doğrusal; irtifa 2-30.000 km arası logaritmik. */
+/** The slider is linear over 0-1000; the altitude is log over 2-30,000 km. */
 const ALT_MIN = 2;
 const ALT_MAX = 30000;
 
@@ -108,7 +108,7 @@ function applyAltitude(altitudeKm: number): void {
   renderer.setSunElevation(Number(sunInput.value));
   altitudeOut.textContent =
     altitudeKm >= 1000
-      ? `${(altitudeKm / 1000).toFixed(1)} bin km`
+      ? `${(altitudeKm / 1000).toFixed(1)}k km`
       : `${altitudeKm.toFixed(altitudeKm < 10 ? 1 : 0)} km`;
 }
 
@@ -127,7 +127,7 @@ function wireControls(): void {
   applyAltitude(DEFAULT_ALTITUDE_KM);
 
   const applyBudget = () => {
-    hud.setNote("Program derleniyor…");
+    hud.setNote("Compiling program…");
     renderer.useBudget(Number(viewSelect.value), Number(lightSelect.value));
     hud.setTimerSource(renderer.timer.available ? "gpu" : "raf");
   };
@@ -173,7 +173,7 @@ const measureMode = new URLSearchParams(location.search).get("measure") === "1";
 if (measureMode) {
   document.body.classList.add("measuring");
   toggleButton.disabled = true;
-  hud.setNote("Deterministik ölçüm koşuyor… (sekmeyi ön planda tutun)");
+  hud.setNote("Deterministic measurement running… (keep the tab in front)");
   running = false;
   runMeasurement(renderer).then((report) => {
     console.log(`MEASURE ${JSON.stringify(report)}`);

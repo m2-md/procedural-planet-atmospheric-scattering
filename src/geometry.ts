@@ -33,8 +33,8 @@ export function length(v: Vec3): number {
 }
 
 /**
- * Işın-küre kesişimi, GLSL'deki `raySphere` ile aynı matematik.
- * Kesişim yoksa `[1, -1]` döner (giriş > çıkış).
+ * Ray-sphere intersection, the same math as `raySphere` in the GLSL.
+ * Returns `[1, -1]` when there is no intersection (entry > exit).
  */
 export function raySphere(
   ro: Vec3,
@@ -50,8 +50,8 @@ export function raySphere(
 }
 
 /**
- * Aynı kesişim, ama `c` terimi iki büyük sayının farkından değil doğrudan
- * irtifadan kuruluyor: |ro|^2 - r^2 = h * (h + 2r).
+ * The same intersection, except the `c` term is built straight from the
+ * altitude instead of the difference of two large numbers: |ro|^2 - r^2 = h * (h + 2r).
  */
 export function raySphereFromHeight(
   ro: Vec3,
@@ -67,7 +67,7 @@ export function raySphereFromHeight(
   return [-b - s, -b + s];
 }
 
-const f = Math.fround; // her ara sonucu float32'ye kırp
+const f = Math.fround; // clamp every intermediate result to float32
 
 export function groundHitNaiveF32(ro: Vec3, rd: Vec3, radius: number): number {
   const b = f(f(f(ro[0] * rd[0]) + f(ro[1] * rd[1])) + f(ro[2] * rd[2]));
@@ -91,7 +91,7 @@ export function groundHitFromHeightF32(
   return f(f(-b) - f(Math.sqrt(disc)));
 }
 
-/** Bir vektörü uniform'a giderken yaşayacağı float32 kırpmasından geçirir. */
+/** Runs a vector through the float32 rounding it meets on its way to a uniform. */
 export function toF32(v: Vec3): Vec3 {
   return [f(v[0]), f(v[1]), f(v[2])];
 }

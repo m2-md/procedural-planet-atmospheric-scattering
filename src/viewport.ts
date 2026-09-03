@@ -14,7 +14,7 @@ export function backingSize(
   return fitPixelBudget(width, height);
 }
 
-// En-boy oranını koruyarak toplam piksel sayısını bütçenin altına indirir.
+// Brings the total pixel count under the budget, keeping the aspect ratio.
 export function fitPixelBudget(
   width: number,
   height: number,

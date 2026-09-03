@@ -24,7 +24,7 @@ function poses() {
 }
 
 describe("poseAtAltitude", () => {
-  it("konumun uzunluğu R + irtifa", () => {
+  it("position length is R + altitude", () => {
     for (const pose of poses()) {
       const r = Math.hypot(
         pose.position[0],
@@ -35,14 +35,14 @@ describe("poseAtAltitude", () => {
     }
   });
 
-  it("irtifa girdiyle BİREBİR eşit kalır (konumdan geri hesaplanmaz)", () => {
+  it("altitude stays EXACTLY equal to the input (never derived from position)", () => {
     for (const altitude of [2, 10.5, 100, 400, 30000]) {
       const pose = poseAtAltitude(altitude, 18 * DEG, 40 * DEG, 0);
       expect(pose.altitude).toBe(altitude);
     }
   });
 
-  it("right/up/forward birim ve karşılıklı dik", () => {
+  it("right/up/forward are unit length and mutually perpendicular", () => {
     for (const pose of poses()) {
       for (const v of [pose.right, pose.up, pose.forward]) {
         expect(Math.hypot(v[0], v[1], v[2])).toBeCloseTo(1, 9);
@@ -53,7 +53,7 @@ describe("poseAtAltitude", () => {
     }
   });
 
-  it("pitch = 0 iken ileri yön yerel yataya oturur", () => {
+  it("at pitch = 0 the forward direction sits on the local horizontal", () => {
     const pose = poseAtAltitude(400, 18 * DEG, 40 * DEG, 0);
     const localUp: Vec3 = [
       pose.position[0] / (R_GROUND + 400),
@@ -65,7 +65,7 @@ describe("poseAtAltitude", () => {
 });
 
 describe("basisMatrix", () => {
-  it("sütun-öncelikli: ilk üç eleman right", () => {
+  it("column-major: the first three elements are right", () => {
     const pose = poseAtAltitude(400, 18 * DEG, 40 * DEG, 0);
     const m = basisMatrix(pose);
     expect(m.length).toBe(9);
@@ -78,7 +78,7 @@ describe("basisMatrix", () => {
 });
 
 describe("horizonDipRad", () => {
-  it("bilinen irtifalarda beklenen dereceleri verir", () => {
+  it("gives the expected degrees at known altitudes", () => {
     const deg = (h: number) => (horizonDipRad(h) * 180) / Math.PI;
     expect(deg(2)).toBeCloseTo(1.43546, 4);
     expect(deg(10)).toBeCloseTo(3.20812, 4);
@@ -87,7 +87,7 @@ describe("horizonDipRad", () => {
     expect(deg(20000)).toBeCloseTo(76.01953, 4);
   });
 
-  it("irtifa arttıkça monoton büyür", () => {
+  it("grows monotonically with altitude", () => {
     let previous = -1;
     for (const h of [2, 10, 100, 1000, 20000]) {
       const dip = horizonDipRad(h);
@@ -98,7 +98,7 @@ describe("horizonDipRad", () => {
 });
 
 describe("sunDirection", () => {
-  it("birim uzunlukta ve yükseklik arttıkça yerel yukarıya yaklaşır", () => {
+  it("is unit length and closes on local up as the elevation rises", () => {
     const pose = poseAtAltitude(2, 18 * DEG, 40 * DEG, 0);
     const localUp: Vec3 = [
       pose.position[0] / (R_GROUND + 2),
@@ -115,7 +115,7 @@ describe("sunDirection", () => {
     }
   });
 
-  it("yükseklik 0 iken güneş yerel yatay düzlemde", () => {
+  it("at elevation 0 the sun lies in the local horizontal plane", () => {
     const pose = poseAtAltitude(2, 18 * DEG, 40 * DEG, 0);
     const localUp: Vec3 = [
       pose.position[0] / (R_GROUND + 2),
@@ -129,7 +129,7 @@ describe("sunDirection", () => {
 describe("skyProbeRect", () => {
   const fovY = 50 * DEG;
 
-  it("kadraj içinde kalır", () => {
+  it("stays inside the frame", () => {
     for (const alt of [2, 10, 100, 1000, 20000]) {
       const pose = poseAtAltitude(alt, 18 * DEG, 40 * DEG, 0);
       const rect = skyProbeRect(pose, fovY, 960, 540, 2);
@@ -140,7 +140,7 @@ describe("skyProbeRect", () => {
     }
   });
 
-  it("sabit pitch'te irtifa arttıkça dikdörtgen aşağı iner", () => {
+  it("at a fixed pitch the rectangle moves down as the altitude rises", () => {
     let previous = Number.POSITIVE_INFINITY;
     for (const alt of [2, 10, 100]) {
       const pose = poseAtAltitude(alt, 18 * DEG, 40 * DEG, 0);
@@ -150,7 +150,7 @@ describe("skyProbeRect", () => {
     }
   });
 
-  it("pitch = -dip + 2° pozunda blok kadrajın dikey ortasına oturur", () => {
+  it("at the pitch = -dip + 2° pose the block sits at the vertical center", () => {
     const alt = 2;
     const pitch = -horizonDipRad(alt) + 2 * DEG;
     const pose = poseAtAltitude(alt, 18 * DEG, 40 * DEG, pitch);
