@@ -1,5 +1,9 @@
 # Procedural Planet + Atmospheric Scattering — Rayleigh and Mie in a single pass
 
+<!-- LINKS:BEGIN — üretildi: scripts/sync-repo-links.py · elle düzenleme -->
+**▶ [Live demo](https://m2-md.github.io/procedural-planet-atmospheric-scattering/)** · [Source](https://github.com/m2-md/procedural-planet-atmospheric-scattering)
+<!-- LINKS:END -->
+
 The working code for the article "A Planet You Can Fly Into: Rayleigh and Mie
 in a Single Pass, 8×4 vs 32×16". Raw WebGL2 (GLSL ES 3.00), TypeScript, Vite,
 vitest. No `three.js`, no shader/math library, **no sky texture**.
