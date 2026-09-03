@@ -4,6 +4,8 @@
 **▶ [Live demo](https://m2-md.github.io/procedural-planet-atmospheric-scattering/)** · [Source](https://github.com/m2-md/procedural-planet-atmospheric-scattering)
 <!-- LINKS:END -->
 
+> Single-pass atmospheric scattering shader for planetary rendering: analytic optical depth integration, Rayleigh blue sky diffusion, Mie forward haze, and aerial perspective.
+
 The working code for the article "A Planet You Can Fly Into: Rayleigh and Mie
 in a Single Pass, 8×4 vs 32×16". Raw WebGL2 (GLSL ES 3.00), TypeScript, Vite,
 vitest. No `three.js`, no shader/math library, **no sky texture**.
@@ -255,6 +257,11 @@ src/
     fullscreen.vert.glsl   three corners from gl_VertexID
     planet.frag.glsl       the whole scattering computation
 ```
+
+## Tech stack
+
+- TypeScript, Vite, Vitest, npm.
+- Raw WebGL2 (GLSL ES 3.00). No three.js, no shader/math library, no sky texture.
 
 ## License
 
